@@ -1,0 +1,928 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sync - Media Hub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    * {
+      font-family: 'Inter', sans-serif;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #141414;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+    .xp-bar-glow {
+      box-shadow: 0 0 20px rgba(147, 51, 234, 0.5), 0 0 40px rgba(147, 51, 234, 0.3);
+    }
+    .xp-pulse {
+      animation: xpPulse 0.6s ease-out;
+    }
+    @keyframes xpPulse {
+      0% { transform: scaleX(1); filter: brightness(1); }
+      50% { transform: scaleX(1.02); filter: brightness(1.5); }
+      100% { transform: scaleX(1); filter: brightness(1); }
+    }
+    .card-hover {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .card-hover:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(147, 51, 234, 0.2);
+    }
+    .search-glow:focus {
+      box-shadow: 0 0 0 2px rgba(147, 51, 234, 0.5), 0 0 20px rgba(147, 51, 234, 0.3);
+    }
+    .nav-item {
+      position: relative;
+    }
+    .nav-item::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 50%;
+      width: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #9333ea, #a855f7);
+      transition: all 0.3s ease;
+      transform: translateX(-50%);
+    }
+    .nav-item:hover::after,
+    .nav-item.active::after {
+      width: 100%;
+    }
+    .status-badge {
+      backdrop-filter: blur(8px);
+    }
+    .modal-backdrop {
+      backdrop-filter: blur(4px);
+    }
+    .achievement-shine {
+      background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);
+      background-size: 200% 200%;
+      animation: shine 3s infinite;
+    }
+    @keyframes shine {
+      0% { background-position: 200% 200%; }
+      100% { background-position: -200% -200%; }
+    }
+    .fade-in {
+      animation: fadeIn 0.3s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .toast-slide {
+      animation: toastSlide 0.3s ease-out;
+    }
+    @keyframes toastSlide {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="h-full bg-[#0A0A0A] text-white">
+  <div id="app" class="h-full w-full flex flex-col overflow-auto"><!-- Header -->
+   <header class="sticky top-0 z-50 bg-[#0A0A0A]/95 backdrop-blur-sm border-b border-white/5">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+     <div class="flex items-center justify-between h-16"><!-- Logo -->
+      <div class="flex items-center gap-3">
+       <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center shadow-lg shadow-purple-500/20">
+        <svg class="w-6 h-6 text-white" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8c0-2.2-1.8-4-4-4H8c-2.2 0-4 1.8-4 4s1.8 4 4 4h8" /> <path d="M6 16c0 2.2 1.8 4 4 4h4c2.2 0 4-1.8 4-4s-1.8-4-4-4H6" />
+        </svg>
+       </div><span id="header-title" class="text-xl font-semibold tracking-tight">Sync</span>
+      </div><!-- Navigation -->
+      <nav class="hidden md:flex items-center gap-8"><button onclick="navigateTo('discover')" class="nav-item text-sm font-medium text-gray-400 hover:text-white transition-colors" data-nav="discover">Discover</button> <button onclick="navigateTo('library')" class="nav-item text-sm font-medium text-gray-400 hover:text-white transition-colors" data-nav="library">Library</button> <button onclick="navigateTo('achievements')" class="nav-item text-sm font-medium text-gray-400 hover:text-white transition-colors" data-nav="achievements">Achievements</button>
+      </nav><!-- User Section -->
+      <div class="flex items-center gap-4">
+       <div class="hidden sm:flex flex-col items-end">
+        <div class="flex items-center gap-2"><span id="user-level" class="text-xs font-semibold text-purple-400">LVL 1</span> <span id="user-xp-text" class="text-xs text-gray-500">0 / 100 XP</span>
+        </div>
+        <div class="w-32 h-1.5 bg-white/10 rounded-full overflow-hidden mt-1">
+         <div id="xp-bar" class="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full xp-bar-glow transition-all duration-500" style="width: 0%"></div>
+        </div>
+       </div><button onclick="navigateTo('profile')" class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm font-semibold ring-2 ring-white/10 hover:ring-purple-500/50 transition-all"> <span id="avatar-initial">U</span> </button>
+      </div>
+     </div>
+    </div>
+   </header><!-- Mobile Navigation -->
+   <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0A]/95 backdrop-blur-sm border-t border-white/5 px-4 py-2">
+    <div class="flex items-center justify-around"><button onclick="navigateTo('discover')" class="flex flex-col items-center gap-1 p-2 text-gray-400 hover:text-purple-400 transition-colors" data-nav-mobile="discover">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg><span class="text-xs">Discover</span> </button> <button onclick="navigateTo('library')" class="flex flex-col items-center gap-1 p-2 text-gray-400 hover:text-purple-400 transition-colors" data-nav-mobile="library">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+      </svg><span class="text-xs">Library</span> </button> <button onclick="navigateTo('achievements')" class="flex flex-col items-center gap-1 p-2 text-gray-400 hover:text-purple-400 transition-colors" data-nav-mobile="achievements">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+      </svg><span class="text-xs">Achievements</span> </button> <button onclick="navigateTo('profile')" class="flex flex-col items-center gap-1 p-2 text-gray-400 hover:text-purple-400 transition-colors" data-nav-mobile="profile">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+      </svg><span class="text-xs">Profile</span> </button>
+    </div>
+   </nav><!-- Main Content -->
+   <main class="flex-1 pb-20 md:pb-8"><!-- Discover Page -->
+    <div id="page-discover" class="page hidden">
+     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"><!-- Search Section -->
+      <div class="max-w-2xl mx-auto mb-12">
+       <h1 class="text-3xl sm:text-4xl font-bold text-center mb-2">Discover Media</h1>
+       <p class="text-gray-400 text-center mb-8">Track your anime, games, and books in one place</p>
+       <div class="relative"><input type="text" id="search-input" placeholder="Search for anime, games, or books..." class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 pl-14 text-white placeholder-gray-500 focus:outline-none search-glow transition-all" oninput="handleSearch(this.value)">
+        <svg class="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+       </div><!-- Media Type Filter -->
+       <div class="flex items-center justify-center gap-2 mt-4"><button onclick="setMediaFilter('all')" class="media-filter px-4 py-2 rounded-lg text-sm font-medium bg-purple-600 text-white transition-all" data-filter="all">All</button> <button onclick="setMediaFilter('anime')" class="media-filter px-4 py-2 rounded-lg text-sm font-medium bg-white/5 text-gray-400 hover:bg-white/10 transition-all" data-filter="anime">🎬 Anime</button> <button onclick="setMediaFilter('game')" class="media-filter px-4 py-2 rounded-lg text-sm font-medium bg-white/5 text-gray-400 hover:bg-white/10 transition-all" data-filter="game">🎮 Games</button> <button onclick="setMediaFilter('book')" class="media-filter px-4 py-2 rounded-lg text-sm font-medium bg-white/5 text-gray-400 hover:bg-white/10 transition-all" data-filter="book">📚 Books</button>
+       </div>
+      </div><!-- Search Results / Featured -->
+      <div id="search-results" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6"><!-- Cards will be rendered here -->
+      </div>
+      <div id="empty-search" class="hidden text-center py-16">
+       <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center">
+        <svg class="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+       </div>
+       <h3 class="text-lg font-medium text-gray-400 mb-1">No results found</h3>
+       <p class="text-sm text-gray-500">Try a different search term</p>
+      </div>
+     </div>
+    </div><!-- Library Page -->
+    <div id="page-library" class="page hidden">
+     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+       <div>
+        <h1 class="text-3xl font-bold">My Library</h1>
+        <p class="text-gray-400 mt-1"><span id="library-count">0</span> items in your collection</p>
+       </div><!-- Status Filter -->
+       <div class="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0"><button onclick="setStatusFilter('all')" class="status-filter whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium bg-purple-600 text-white transition-all" data-status="all">All</button> <button onclick="setStatusFilter('consuming')" class="status-filter whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium bg-white/5 text-gray-400 hover:bg-white/10 transition-all" data-status="consuming">▶️ In Progress</button> <button onclick="setStatusFilter('planning')" class="status-filter whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium bg-white/5 text-gray-400 hover:bg-white/10 transition-all" data-status="planning">📋 Planning</button> <button onclick="setStatusFilter('completed')" class="status-filter whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium bg-white/5 text-gray-400 hover:bg-white/10 transition-all" data-status="completed">✅ Completed</button> <button onclick="setStatusFilter('dropped')" class="status-filter whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium bg-white/5 text-gray-400 hover:bg-white/10 transition-all" data-status="dropped">❌ Dropped</button>
+       </div>
+      </div><!-- Library Grid -->
+      <div id="library-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6"><!-- Library cards will be rendered here -->
+      </div>
+      <div id="empty-library" class="hidden text-center py-16">
+       <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center">
+        <svg class="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+       </div>
+       <h3 class="text-lg font-medium text-gray-400 mb-1">Your library is empty</h3>
+       <p class="text-sm text-gray-500 mb-4">Start by discovering some media to track</p><button onclick="navigateTo('discover')" class="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium transition-colors"> Discover Media </button>
+      </div>
+     </div>
+    </div><!-- Achievements Page -->
+    <div id="page-achievements" class="page hidden">
+     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div class="text-center mb-12">
+       <h1 class="text-3xl font-bold mb-2">Achievements</h1>
+       <p class="text-gray-400">Track your progress and unlock rewards</p>
+      </div><!-- Stats Overview -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+       <div class="bg-white/5 rounded-2xl p-6 text-center border border-white/5">
+        <div class="text-3xl font-bold text-purple-400" id="stat-completed">
+         0
+        </div>
+        <div class="text-sm text-gray-400 mt-1">
+         Completed
+        </div>
+       </div>
+       <div class="bg-white/5 rounded-2xl p-6 text-center border border-white/5">
+        <div class="text-3xl font-bold text-blue-400" id="stat-progress">
+         0
+        </div>
+        <div class="text-sm text-gray-400 mt-1">
+         In Progress
+        </div>
+       </div>
+       <div class="bg-white/5 rounded-2xl p-6 text-center border border-white/5">
+        <div class="text-3xl font-bold text-yellow-400" id="stat-total-xp">
+         0
+        </div>
+        <div class="text-sm text-gray-400 mt-1">
+         Total XP
+        </div>
+       </div>
+       <div class="bg-white/5 rounded-2xl p-6 text-center border border-white/5">
+        <div class="text-3xl font-bold text-green-400" id="stat-level">
+         1
+        </div>
+        <div class="text-sm text-gray-400 mt-1">
+         Level
+        </div>
+       </div>
+      </div><!-- Achievement Badges -->
+      <h2 class="text-xl font-semibold mb-6">Badges</h2>
+      <div id="achievements-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"><!-- Achievement badges will be rendered here -->
+      </div>
+     </div>
+    </div><!-- Profile Page -->
+    <div id="page-profile" class="page hidden">
+     <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <h1 class="text-3xl font-bold mb-8">Profile Settings</h1><!-- Profile Card -->
+      <div class="bg-white/5 rounded-2xl p-6 border border-white/5 mb-8">
+       <div class="flex items-center gap-4 mb-6">
+        <div class="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-2xl font-bold ring-4 ring-purple-500/20"><span id="profile-avatar">U</span>
+        </div>
+        <div>
+         <h2 id="profile-name" class="text-xl font-semibold">User</h2>
+         <p id="profile-bio" class="text-gray-400 text-sm">No bio set</p>
+        </div>
+       </div>
+       <div class="space-y-4">
+        <div><label for="profile-username-input" class="block text-sm font-medium text-gray-400 mb-2">Username</label> <input type="text" id="profile-username-input" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors" placeholder="Enter your username" oninput="updateProfileField('username', this.value)">
+        </div>
+        <div><label for="profile-bio-input" class="block text-sm font-medium text-gray-400 mb-2">Bio</label> <textarea id="profile-bio-input" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors resize-none" rows="3" placeholder="Tell us about yourself..." oninput="updateProfileField('user_bio', this.value)"></textarea>
+        </div>
+       </div>
+      </div><!-- Danger Zone -->
+      <div class="bg-red-500/10 rounded-2xl p-6 border border-red-500/20">
+       <h3 class="text-lg font-semibold text-red-400 mb-2">Danger Zone</h3>
+       <p class="text-sm text-gray-400 mb-4">Once you delete your library, there is no going back. Please be certain.</p><button id="delete-library-btn" onclick="showDeleteConfirmation()" class="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-sm font-medium transition-colors"> Delete All Library Data </button>
+       <div id="delete-confirmation" class="hidden mt-4 p-4 bg-red-500/10 rounded-xl">
+        <p class="text-sm text-red-300 mb-3">Are you sure? This will permanently delete all your tracked media.</p>
+        <div class="flex gap-2"><button onclick="confirmDeleteLibrary()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"> Yes, Delete Everything </button> <button onclick="hideDeleteConfirmation()" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-gray-300 rounded-lg text-sm font-medium transition-colors"> Cancel </button>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </main><!-- Detail Modal -->
+   <div id="detail-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/80 modal-backdrop" onclick="closeDetailModal()"></div>
+    <div class="relative bg-[#141414] rounded-2xl max-w-2xl w-full max-h-[90%] overflow-y-auto border border-white/10 shadow-2xl fade-in"><button onclick="closeDetailModal()" class="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors z-10">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+      </svg></button>
+     <div id="modal-content"><!-- Modal content will be rendered here -->
+     </div>
+    </div>
+   </div><!-- Toast Container -->
+   <div id="toast-container" class="fixed top-20 right-4 z-50 flex flex-col gap-2"></div>
+  </div>
+  <script>
+    // ===== STATE =====
+    let libraryData = [];
+    let currentPage = 'discover';
+    let currentMediaFilter = 'all';
+    let currentStatusFilter = 'all';
+    let searchQuery = '';
+
+    // Sample media data (reference content)
+    const sampleMedia = [
+      { id: '1', mediaType: 'anime', title: 'Attack on Titan', year: '2013', cover: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)', synopsis: 'In a world where humanity lives inside cities surrounded by enormous walls due to the Titans, gigantic humanoid creatures who devour humans seemingly without reason.' },
+      { id: '2', mediaType: 'anime', title: 'Demon Slayer', year: '2019', cover: 'linear-gradient(135deg, #2d132c 0%, #801336 50%, #c72c41 100%)', synopsis: 'A young boy becomes a demon slayer after his family is slaughtered and his younger sister is turned into a demon.' },
+      { id: '3', mediaType: 'anime', title: 'Jujutsu Kaisen', year: '2020', cover: 'linear-gradient(135deg, #0d0d0d 0%, #1a1a2e 50%, #3d3d6b 100%)', synopsis: 'A boy swallows a cursed talisman and becomes host to an extremely powerful curse, joining a secret school of sorcerers.' },
+      { id: '4', mediaType: 'anime', title: 'One Piece', year: '1999', cover: 'linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #4a90c2 100%)', synopsis: 'Monkey D. Luffy and his pirate crew explore a fantastical world of endless oceans and exotic islands in search of the ultimate treasure.' },
+      { id: '5', mediaType: 'anime', title: 'My Hero Academia', year: '2016', cover: 'linear-gradient(135deg, #134e5e 0%, #1a6b4a 50%, #71b280 100%)', synopsis: 'In a world where people with superpowers are the norm, a boy without them still dreams of becoming a superhero.' },
+      { id: '6', mediaType: 'game', title: 'Elden Ring', year: '2022', cover: 'linear-gradient(135deg, #2c3e50 0%, #4a6741 50%, #8b9a46 100%)', synopsis: 'An action RPG developed by FromSoftware, set in the Lands Between, a realm blessed by the Erdtree.' },
+      { id: '7', mediaType: 'game', title: 'Baldur\'s Gate 3', year: '2023', cover: 'linear-gradient(135deg, #1a1a2e 0%, #5c3d2e 50%, #8b4513 100%)', synopsis: 'A story-rich, party-based RPG set in the universe of Dungeons & Dragons, where your choices shape the narrative.' },
+      { id: '8', mediaType: 'game', title: 'The Witcher 3', year: '2015', cover: 'linear-gradient(135deg, #1c2833 0%, #2e4053 50%, #5d6d7e 100%)', synopsis: 'An epic open world adventure where you play as Geralt of Rivia, a monster hunter searching for his adopted daughter.' },
+      { id: '9', mediaType: 'game', title: 'Hollow Knight', year: '2017', cover: 'linear-gradient(135deg, #1a1a2e 0%, #2e2e4e 50%, #5a5a8a 100%)', synopsis: 'A challenging metroidvania action game set in a vast, ruined kingdom of insects and heroes.' },
+      { id: '10', mediaType: 'game', title: 'Hades', year: '2020', cover: 'linear-gradient(135deg, #1f1f2e 0%, #4a2c4a 50%, #8b3a62 100%)', synopsis: 'Defy the god of the dead as you hack and slash your way out of the Underworld in this rogue-like dungeon crawler.' },
+      { id: '11', mediaType: 'book', title: 'Dune', year: '1965', cover: 'linear-gradient(135deg, #c2b280 0%, #d4a574 50%, #8b6914 100%)', synopsis: 'Set in the distant future amidst a feudal interstellar society, Dune tells the story of young Paul Atreides.' },
+      { id: '12', mediaType: 'book', title: '1984', year: '1949', cover: 'linear-gradient(135deg, #2c2c2c 0%, #4a4a4a 50%, #1a1a1a 100%)', synopsis: 'A dystopian social science fiction novel and cautionary tale about the dangers of totalitarian rule.' },
+      { id: '13', mediaType: 'book', title: 'The Hobbit', year: '1937', cover: 'linear-gradient(135deg, #2d5016 0%, #4a7c23 50%, #228b22 100%)', synopsis: 'Bilbo Baggins is swept into an epic quest to reclaim the lost Dwarf Kingdom of Erebor from the fearsome dragon Smaug.' },
+      { id: '14', mediaType: 'book', title: 'Neuromancer', year: '1984', cover: 'linear-gradient(135deg, #0a0a0a 0%, #1a3a4a 50%, #00ced1 100%)', synopsis: 'A washed-up computer hacker is hired for one last job, taking readers on a trip into the Matrix.' },
+      { id: '15', mediaType: 'book', title: 'Foundation', year: '1951', cover: 'linear-gradient(135deg, #0f0f23 0%, #1a1a4a 50%, #4169e1 100%)', synopsis: 'A galactic empire is crumbling. Hari Seldon has foreseen the dark ages ahead. Can his plan save humanity?' },
+      { id: '16', mediaType: 'anime', title: 'Chainsaw Man', year: '2022', cover: 'linear-gradient(135deg, #8b0000 0%, #b22222 50%, #dc143c 100%)', synopsis: 'Denji is a young man who made a contract with a devil dog to survive. After being betrayed and killed, he is reborn as Chainsaw Man.' },
+      { id: '17', mediaType: 'game', title: 'Celeste', year: '2018', cover: 'linear-gradient(135deg, #1a1a3e 0%, #4a2a6a 50%, #ff6b9d 100%)', synopsis: 'Help Madeline survive her inner demons on her journey to the top of Celeste Mountain.' },
+      { id: '18', mediaType: 'book', title: 'Project Hail Mary', year: '2021', cover: 'linear-gradient(135deg, #0a0a1a 0%, #1a2a4a 50%, #4a6fa5 100%)', synopsis: 'A lone astronaut must save the earth from disaster in this interstellar adventure.' }
+    ];
+
+    // Achievements definitions
+    const achievementDefs = [
+      { id: 'first_add', name: 'First Step', desc: 'Add your first media', icon: '🌟', xp: 10, condition: (lib) => lib.length >= 1 },
+      { id: 'collector_5', name: 'Collector', desc: 'Add 5 items to library', icon: '📦', xp: 25, condition: (lib) => lib.length >= 5 },
+      { id: 'collector_10', name: 'Hoarder', desc: 'Add 10 items to library', icon: '🏆', xp: 50, condition: (lib) => lib.length >= 10 },
+      { id: 'first_complete', name: 'Finisher', desc: 'Complete your first media', icon: '✅', xp: 20, condition: (lib) => lib.filter(i => i.status === 'completed').length >= 1 },
+      { id: 'complete_5', name: 'Achiever', desc: 'Complete 5 items', icon: '🎯', xp: 50, condition: (lib) => lib.filter(i => i.status === 'completed').length >= 5 },
+      { id: 'anime_fan', name: 'Anime Fan', desc: 'Add 3 anime', icon: '🎬', xp: 15, condition: (lib) => lib.filter(i => i.mediaType === 'anime').length >= 3 },
+      { id: 'gamer', name: 'Gamer', desc: 'Add 3 games', icon: '🎮', xp: 15, condition: (lib) => lib.filter(i => i.mediaType === 'game').length >= 3 },
+      { id: 'bookworm', name: 'Bookworm', desc: 'Add 3 books', icon: '📚', xp: 15, condition: (lib) => lib.filter(i => i.mediaType === 'book').length >= 3 },
+      { id: 'diverse', name: 'Diverse Taste', desc: 'Add all media types', icon: '🌈', xp: 30, condition: (lib) => {
+        const types = new Set(lib.map(i => i.mediaType));
+        return types.has('anime') && types.has('game') && types.has('book');
+      }},
+      { id: 'critic', name: 'Critic', desc: 'Rate 3 completed items', icon: '⭐', xp: 20, condition: (lib) => lib.filter(i => i.status === 'completed' && i.rating > 0).length >= 3 }
+    ];
+
+    let unlockedAchievements = new Set();
+    let totalXP = 0;
+
+    // ===== CONFIG =====
+    const defaultConfig = {
+      app_title: 'Sync',
+      username: 'User',
+      user_bio: 'No bio set',
+      background_color: '#0A0A0A',
+      surface_color: '#141414',
+      text_color: '#ffffff',
+      primary_action: '#9333ea',
+      secondary_action: '#6b7280',
+      font_family: 'Inter',
+      font_size: 16
+    };
+
+    let config = { ...defaultConfig };
+
+    // ===== SDK INITIALIZATION =====
+    const dataHandler = {
+      onDataChanged(data) {
+        libraryData = data;
+        renderLibrary();
+        updateStats();
+        checkAchievements();
+      }
+    };
+
+    async function initApp() {
+      // Init Element SDK
+      if (window.elementSdk) {
+        window.elementSdk.init({
+          defaultConfig,
+          onConfigChange: async (newConfig) => {
+            config = { ...defaultConfig, ...newConfig };
+            applyConfig();
+          },
+          mapToCapabilities: (cfg) => ({
+            recolorables: [
+              { get: () => cfg.background_color || defaultConfig.background_color, set: (v) => { cfg.background_color = v; window.elementSdk.setConfig({ background_color: v }); } },
+              { get: () => cfg.surface_color || defaultConfig.surface_color, set: (v) => { cfg.surface_color = v; window.elementSdk.setConfig({ surface_color: v }); } },
+              { get: () => cfg.text_color || defaultConfig.text_color, set: (v) => { cfg.text_color = v; window.elementSdk.setConfig({ text_color: v }); } },
+              { get: () => cfg.primary_action || defaultConfig.primary_action, set: (v) => { cfg.primary_action = v; window.elementSdk.setConfig({ primary_action: v }); } },
+              { get: () => cfg.secondary_action || defaultConfig.secondary_action, set: (v) => { cfg.secondary_action = v; window.elementSdk.setConfig({ secondary_action: v }); } }
+            ],
+            borderables: [],
+            fontEditable: {
+              get: () => cfg.font_family || defaultConfig.font_family,
+              set: (v) => { cfg.font_family = v; window.elementSdk.setConfig({ font_family: v }); }
+            },
+            fontSizeable: {
+              get: () => cfg.font_size || defaultConfig.font_size,
+              set: (v) => { cfg.font_size = v; window.elementSdk.setConfig({ font_size: v }); }
+            }
+          }),
+          mapToEditPanelValues: (cfg) => new Map([
+            ['app_title', cfg.app_title || defaultConfig.app_title],
+            ['username', cfg.username || defaultConfig.username],
+            ['user_bio', cfg.user_bio || defaultConfig.user_bio]
+          ])
+        });
+      }
+
+      // Init Data SDK
+      if (window.dataSdk) {
+        const result = await window.dataSdk.init(dataHandler);
+        if (!result.isOk) {
+          console.error('Failed to initialize Data SDK');
+        }
+      }
+
+      applyConfig();
+      navigateTo('discover');
+      renderSearchResults();
+    }
+
+    function applyConfig() {
+      const bg = config.background_color || defaultConfig.background_color;
+      const surface = config.surface_color || defaultConfig.surface_color;
+      const text = config.text_color || defaultConfig.text_color;
+      const primary = config.primary_action || defaultConfig.primary_action;
+      const secondary = config.secondary_action || defaultConfig.secondary_action;
+      const fontFamily = config.font_family || defaultConfig.font_family;
+      const fontSize = config.font_size || defaultConfig.font_size;
+
+      document.body.style.backgroundColor = bg;
+      document.body.style.color = text;
+      document.body.style.fontFamily = `${fontFamily}, Inter, sans-serif`;
+      document.body.style.fontSize = `${fontSize}px`;
+
+      document.getElementById('header-title').textContent = config.app_title || defaultConfig.app_title;
+      
+      const username = config.username || defaultConfig.username;
+      document.getElementById('avatar-initial').textContent = username.charAt(0).toUpperCase();
+      document.getElementById('profile-avatar').textContent = username.charAt(0).toUpperCase();
+      document.getElementById('profile-name').textContent = username;
+      document.getElementById('profile-bio').textContent = config.user_bio || defaultConfig.user_bio;
+      document.getElementById('profile-username-input').value = username;
+      document.getElementById('profile-bio-input').value = config.user_bio || defaultConfig.user_bio;
+
+      // Update header background
+      document.querySelector('header').style.backgroundColor = `${bg}f2`;
+      
+      // Update mobile nav background
+      const mobileNav = document.querySelector('nav.md\\:hidden');
+      if (mobileNav) mobileNav.style.backgroundColor = `${bg}f2`;
+    }
+
+    function updateProfileField(field, value) {
+      if (window.elementSdk) {
+        window.elementSdk.setConfig({ [field]: value });
+      }
+    }
+
+    // ===== NAVIGATION =====
+    function navigateTo(page) {
+      currentPage = page;
+      
+      document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+      document.getElementById(`page-${page}`).classList.remove('hidden');
+      
+      document.querySelectorAll('.nav-item').forEach(n => {
+        n.classList.remove('active', 'text-white');
+        n.classList.add('text-gray-400');
+      });
+      const activeNav = document.querySelector(`[data-nav="${page}"]`);
+      if (activeNav) {
+        activeNav.classList.add('active', 'text-white');
+        activeNav.classList.remove('text-gray-400');
+      }
+
+      document.querySelectorAll('[data-nav-mobile]').forEach(n => {
+        if (n.dataset.navMobile === page) {
+          n.classList.add('text-purple-400');
+          n.classList.remove('text-gray-400');
+        } else {
+          n.classList.remove('text-purple-400');
+          n.classList.add('text-gray-400');
+        }
+      });
+
+      if (page === 'achievements') {
+        renderAchievements();
+      }
+    }
+
+    // ===== SEARCH & FILTER =====
+    function handleSearch(query) {
+      searchQuery = query.toLowerCase();
+      renderSearchResults();
+    }
+
+    function setMediaFilter(filter) {
+      currentMediaFilter = filter;
+      
+      document.querySelectorAll('.media-filter').forEach(btn => {
+        if (btn.dataset.filter === filter) {
+          btn.classList.add('bg-purple-600', 'text-white');
+          btn.classList.remove('bg-white/5', 'text-gray-400');
+        } else {
+          btn.classList.remove('bg-purple-600', 'text-white');
+          btn.classList.add('bg-white/5', 'text-gray-400');
+        }
+      });
+      
+      renderSearchResults();
+    }
+
+    function renderSearchResults() {
+      let filtered = sampleMedia;
+      
+      if (searchQuery) {
+        filtered = filtered.filter(m => 
+          m.title.toLowerCase().includes(searchQuery) ||
+          m.mediaType.toLowerCase().includes(searchQuery)
+        );
+      }
+      
+      if (currentMediaFilter !== 'all') {
+        filtered = filtered.filter(m => m.mediaType === currentMediaFilter);
+      }
+
+      const container = document.getElementById('search-results');
+      const emptyState = document.getElementById('empty-search');
+
+      if (filtered.length === 0) {
+        container.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      container.innerHTML = filtered.map(media => createMediaCard(media, false)).join('');
+    }
+
+    function createMediaCard(media, isLibrary = false) {
+      const inLibrary = libraryData.some(l => l.title === media.title);
+      const libraryItem = libraryData.find(l => l.title === media.title);
+      const typeEmoji = media.mediaType === 'anime' ? '🎬' : media.mediaType === 'game' ? '🎮' : '📚';
+      
+      let statusBadge = '';
+      if (isLibrary && libraryItem) {
+        const statusColors = {
+          planning: 'bg-blue-500/20 text-blue-400',
+          consuming: 'bg-yellow-500/20 text-yellow-400',
+          completed: 'bg-green-500/20 text-green-400',
+          dropped: 'bg-red-500/20 text-red-400'
+        };
+        const statusLabels = {
+          planning: '📋 Planning',
+          consuming: '▶️ In Progress',
+          completed: '✅ Completed',
+          dropped: '❌ Dropped'
+        };
+        statusBadge = `<div class="absolute top-2 left-2 px-2 py-1 rounded-lg text-xs font-medium ${statusColors[libraryItem.status]} status-badge">${statusLabels[libraryItem.status]}</div>`;
+        
+        if (libraryItem.status === 'completed' && libraryItem.rating > 0) {
+          statusBadge += `<div class="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-medium bg-yellow-500/20 text-yellow-400 status-badge">⭐ ${libraryItem.rating}</div>`;
+        }
+      }
+
+      return `
+        <div class="card-hover cursor-pointer" onclick="openDetailModal('${media.id}', ${isLibrary})">
+          <div class="relative aspect-[2/3] rounded-xl overflow-hidden" style="background: ${media.cover}">
+            ${statusBadge}
+            <div class="absolute inset-0 flex items-center justify-center text-6xl opacity-30">${typeEmoji}</div>
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+            <div class="absolute bottom-0 left-0 right-0 p-4">
+              <h3 class="font-semibold text-sm line-clamp-2 mb-1">${media.title}</h3>
+              <p class="text-xs text-gray-400">${media.year}</p>
+            </div>
+            ${!isLibrary && inLibrary ? '<div class="absolute top-2 right-2 w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center text-xs">✓</div>' : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    // ===== LIBRARY =====
+    function setStatusFilter(filter) {
+      currentStatusFilter = filter;
+      
+      document.querySelectorAll('.status-filter').forEach(btn => {
+        if (btn.dataset.status === filter) {
+          btn.classList.add('bg-purple-600', 'text-white');
+          btn.classList.remove('bg-white/5', 'text-gray-400');
+        } else {
+          btn.classList.remove('bg-purple-600', 'text-white');
+          btn.classList.add('bg-white/5', 'text-gray-400');
+        }
+      });
+      
+      renderLibrary();
+    }
+
+    function renderLibrary() {
+      let filtered = libraryData;
+      
+      if (currentStatusFilter !== 'all') {
+        filtered = filtered.filter(item => item.status === currentStatusFilter);
+      }
+
+      const container = document.getElementById('library-grid');
+      const emptyState = document.getElementById('empty-library');
+      document.getElementById('library-count').textContent = libraryData.length;
+
+      if (filtered.length === 0) {
+        container.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      
+      const mediaCards = filtered.map(item => {
+        const media = {
+          id: item.__backendId,
+          mediaType: item.mediaType,
+          title: item.title,
+          year: item.year,
+          cover: item.cover,
+          synopsis: item.synopsis
+        };
+        return createMediaCard(media, true);
+      });
+      
+      container.innerHTML = mediaCards.join('');
+    }
+
+    // ===== DETAIL MODAL =====
+    function openDetailModal(id, isLibrary = false) {
+      let media;
+      let libraryItem = null;
+      
+      if (isLibrary) {
+        libraryItem = libraryData.find(l => l.__backendId === id);
+        if (libraryItem) {
+          media = {
+            id: libraryItem.__backendId,
+            mediaType: libraryItem.mediaType,
+            title: libraryItem.title,
+            year: libraryItem.year,
+            cover: libraryItem.cover,
+            synopsis: libraryItem.synopsis
+          };
+        }
+      } else {
+        media = sampleMedia.find(m => m.id === id);
+        libraryItem = libraryData.find(l => l.title === media?.title);
+      }
+
+      if (!media) return;
+
+      const typeEmoji = media.mediaType === 'anime' ? '🎬' : media.mediaType === 'game' ? '🎮' : '📚';
+      const typeName = media.mediaType === 'anime' ? 'Anime' : media.mediaType === 'game' ? 'Game' : 'Book';
+
+      const inLibrary = !!libraryItem;
+      const currentStatus = libraryItem?.status || 'planning';
+      const currentRating = libraryItem?.rating || 0;
+
+      const statusOptions = ['planning', 'consuming', 'completed', 'dropped'];
+      const statusLabels = {
+        planning: '📋 Planning',
+        consuming: '▶️ In Progress',
+        completed: '✅ Completed',
+        dropped: '❌ Dropped'
+      };
+
+      document.getElementById('modal-content').innerHTML = `
+        <div class="relative">
+          <div class="h-48 rounded-t-2xl" style="background: ${media.cover}">
+            <div class="absolute inset-0 flex items-center justify-center text-8xl opacity-20">${typeEmoji}</div>
+            <div class="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-transparent rounded-t-2xl"></div>
+          </div>
+          <div class="p-6 -mt-16 relative">
+            <span class="inline-block px-3 py-1 rounded-full text-xs font-medium bg-purple-600/20 text-purple-400 mb-3">${typeEmoji} ${typeName}</span>
+            <h2 class="text-2xl font-bold mb-1">${media.title}</h2>
+            <p class="text-gray-400 text-sm mb-4">${media.year}</p>
+            <p class="text-gray-300 text-sm leading-relaxed mb-6">${media.synopsis}</p>
+            
+            ${inLibrary ? `
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-2">Status</label>
+                  <div class="flex flex-wrap gap-2">
+                    ${statusOptions.map(status => `
+                      <button 
+                        onclick="updateLibraryStatus('${libraryItem.__backendId}', '${status}')"
+                        class="px-4 py-2 rounded-lg text-sm font-medium transition-all ${currentStatus === status ? 'bg-purple-600 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}"
+                      >
+                        ${statusLabels[status]}
+                      </button>
+                    `).join('')}
+                  </div>
+                </div>
+                
+                ${currentStatus === 'completed' ? `
+                  <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Rating</label>
+                    <div class="flex items-center gap-1">
+                      ${[1,2,3,4,5,6,7,8,9,10].map(n => `
+                        <button 
+                          onclick="updateLibraryRating('${libraryItem.__backendId}', ${n})"
+                          class="w-8 h-8 rounded-lg text-sm font-medium transition-all ${currentRating >= n ? 'bg-yellow-500 text-black' : 'bg-white/5 text-gray-400 hover:bg-white/10'}"
+                        >
+                          ${n}
+                        </button>
+                      `).join('')}
+                    </div>
+                  </div>
+                ` : ''}
+                
+                <button 
+                  onclick="removeFromLibrary('${libraryItem.__backendId}')"
+                  class="w-full py-3 rounded-xl text-sm font-medium bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                >
+                  Remove from Library
+                </button>
+              </div>
+            ` : `
+              <button 
+                onclick="addToLibrary('${media.id}')"
+                id="add-to-library-btn"
+                class="w-full py-3 rounded-xl text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white transition-colors flex items-center justify-center gap-2"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Add to Library
+              </button>
+            `}
+          </div>
+        </div>
+      `;
+
+      document.getElementById('detail-modal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeDetailModal() {
+      document.getElementById('detail-modal').classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    // ===== LIBRARY OPERATIONS =====
+    async function addToLibrary(mediaId) {
+      if (libraryData.length >= 999) {
+        showToast('Library limit reached (999 items)', 'error');
+        return;
+      }
+
+      const media = sampleMedia.find(m => m.id === mediaId);
+      if (!media) return;
+
+      const btn = document.getElementById('add-to-library-btn');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="animate-pulse">Adding...</span>';
+      }
+
+      const result = await window.dataSdk.create({
+        type: 'media',
+        mediaType: media.mediaType,
+        title: media.title,
+        year: media.year,
+        cover: media.cover,
+        synopsis: media.synopsis,
+        status: 'planning',
+        rating: 0,
+        addedAt: new Date().toISOString(),
+        completedAt: ''
+      });
+
+      if (result.isOk) {
+        showToast(`${media.title} added to library!`, 'success');
+        closeDetailModal();
+      } else {
+        showToast('Failed to add to library', 'error');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Add to Library
+          `;
+        }
+      }
+    }
+
+    async function updateLibraryStatus(backendId, status) {
+      const item = libraryData.find(l => l.__backendId === backendId);
+      if (!item) return;
+
+      const wasCompleted = item.status === 'completed';
+      const isNowCompleted = status === 'completed';
+
+      const updatedItem = {
+        ...item,
+        status,
+        completedAt: isNowCompleted && !wasCompleted ? new Date().toISOString() : item.completedAt
+      };
+
+      const result = await window.dataSdk.update(updatedItem);
+      
+      if (result.isOk) {
+        if (isNowCompleted && !wasCompleted) {
+          awardXP(25, 'Completed a media!');
+        }
+        openDetailModal(backendId, true);
+      } else {
+        showToast('Failed to update status', 'error');
+      }
+    }
+
+    async function updateLibraryRating(backendId, rating) {
+      const item = libraryData.find(l => l.__backendId === backendId);
+      if (!item) return;
+
+      const updatedItem = { ...item, rating };
+
+      const result = await window.dataSdk.update(updatedItem);
+      
+      if (result.isOk) {
+        openDetailModal(backendId, true);
+      } else {
+        showToast('Failed to update rating', 'error');
+      }
+    }
+
+    async function removeFromLibrary(backendId) {
+      const item = libraryData.find(l => l.__backendId === backendId);
+      if (!item) return;
+
+      const result = await window.dataSdk.delete(item);
+      
+      if (result.isOk) {
+        showToast('Removed from library', 'success');
+        closeDetailModal();
+      } else {
+        showToast('Failed to remove', 'error');
+      }
+    }
+
+    // ===== DELETE CONFIRMATION =====
+    function showDeleteConfirmation() {
+      document.getElementById('delete-confirmation').classList.remove('hidden');
+    }
+
+    function hideDeleteConfirmation() {
+      document.getElementById('delete-confirmation').classList.add('hidden');
+    }
+
+    async function confirmDeleteLibrary() {
+      for (const item of libraryData) {
+        await window.dataSdk.delete(item);
+      }
+      hideDeleteConfirmation();
+      showToast('Library cleared', 'success');
+    }
+
+    // ===== XP & ACHIEVEMENTS =====
+    function awardXP(amount, reason) {
+      totalXP += amount;
+      updateXPBar();
+      showToast(`+${amount} XP: ${reason}`, 'success');
+    }
+
+    function updateXPBar() {
+      const level = Math.floor(totalXP / 100) + 1;
+      const xpInLevel = totalXP % 100;
+      const percentage = xpInLevel;
+
+      document.getElementById('user-level').textContent = `LVL ${level}`;
+      document.getElementById('user-xp-text').textContent = `${xpInLevel} / 100 XP`;
+      
+      const xpBar = document.getElementById('xp-bar');
+      xpBar.style.width = `${percentage}%`;
+      xpBar.classList.add('xp-pulse');
+      setTimeout(() => xpBar.classList.remove('xp-pulse'), 600);
+    }
+
+    function updateStats() {
+      const completed = libraryData.filter(i => i.status === 'completed').length;
+      const inProgress = libraryData.filter(i => i.status === 'consuming').length;
+      const level = Math.floor(totalXP / 100) + 1;
+
+      document.getElementById('stat-completed').textContent = completed;
+      document.getElementById('stat-progress').textContent = inProgress;
+      document.getElementById('stat-total-xp').textContent = totalXP;
+      document.getElementById('stat-level').textContent = level;
+    }
+
+    function checkAchievements() {
+      achievementDefs.forEach(ach => {
+        if (!unlockedAchievements.has(ach.id) && ach.condition(libraryData)) {
+          unlockedAchievements.add(ach.id);
+          awardXP(ach.xp, `Achievement: ${ach.name}`);
+        }
+      });
+    }
+
+    function renderAchievements() {
+      updateStats();
+      
+      const container = document.getElementById('achievements-grid');
+      container.innerHTML = achievementDefs.map(ach => {
+        const unlocked = unlockedAchievements.has(ach.id);
+        return `
+          <div class="relative rounded-2xl p-6 text-center border transition-all ${unlocked ? 'bg-purple-600/10 border-purple-500/30' : 'bg-white/5 border-white/5 opacity-50'}">
+            ${unlocked ? '<div class="absolute inset-0 rounded-2xl achievement-shine"></div>' : ''}
+            <div class="relative">
+              <div class="text-4xl mb-3">${ach.icon}</div>
+              <h3 class="font-semibold text-sm mb-1">${ach.name}</h3>
+              <p class="text-xs text-gray-400 mb-2">${ach.desc}</p>
+              <span class="text-xs font-medium ${unlocked ? 'text-purple-400' : 'text-gray-500'}">${unlocked ? '✓ Unlocked' : `+${ach.xp} XP`}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ===== TOAST =====
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast-slide px-4 py-3 rounded-xl text-sm font-medium shadow-lg ${type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-purple-600'}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // ===== INIT =====
+    initApp();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c58ecbf677000df',t:'MTc2OTY5MTc1NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
