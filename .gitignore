@@ -1,0 +1,36 @@
+# --- Python & UV ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.egg-info/
+
+# --- Segurança (CRÍTICO) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- IDEs & SO ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Docker & Dados ---
+postgres_data/
+redis_data/
+*.log
+
+# --- Golang (Worker) ---
+# Ignora binários compilados (o .exe que o Go gera)
+worker/bin/
+*.exe
+*.test
+vendor/
+
+# --- Sync Específico ---
+core/app/static/output.css
